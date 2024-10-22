@@ -1,2 +1,7 @@
 # System Files
 .env
+venv
+config
+.vscode
+__pycache__
+*.pyc
