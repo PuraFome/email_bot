@@ -23,7 +23,7 @@ def send_email(config, recipient_email, subject, message, sending_emails_id):
         <body>
             <p>{message}</p>
             <div style="width: 100%; height: 50px; background-color: black;"></div>
-            <img src="https://b9d8-2804-d55-7906-c00-1470-7fc5-928-8cbe.ngrok-free.app/track_open/{sending_emails_id}" alt="" width="1" height="1" />
+            <img src="https://malling-bot-2-935702226305.southamerica-east1.run.app/track_open/{sending_emails_id}" alt="" width="1" height="1" />
         </body>
         </html>
         """

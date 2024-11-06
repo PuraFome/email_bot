@@ -97,4 +97,4 @@ def log_email_sent(cursor, conn, enterprise, sender_email):
         return None
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8080)

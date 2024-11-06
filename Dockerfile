@@ -11,11 +11,14 @@ RUN pip install -r requirements.txt
 # Copia o restante do código para o contêiner
 COPY . .
 
+# Copia o certificado SSL para o contêiner
+COPY certs/root.crt /root/.postgresql/root.crt
+
 # Define a variável de ambiente para o Flask
 ENV FLASK_APP=app.py
 
 # Expõe a porta que o Flask usará
-EXPOSE 5000
+EXPOSE 8080
 
 # Comando para iniciar a aplicação
-CMD ["flask", "run", "--host=0.0.0.0"]
+CMD ["flask", "run", "--host=0.0.0.0", "--port=8080"]

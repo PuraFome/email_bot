@@ -1,7 +1,7 @@
 # System Files
 .env
+certs
 venv
-config
 .vscode
 __pycache__
 *.pyc
