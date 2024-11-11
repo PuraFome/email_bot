@@ -32,6 +32,7 @@ def start_email_service():
         return jsonify({'error': 'Erro ao conectar ao banco de dados'}), 500
 
     enterprises = get_enterprises(cursor, config['range_days'])
+    runners = get_runners(cursor)
     for enterprise in enterprises:
         logging.info('Stop email service flag is set: %s', stop_email_service_flag.is_set())
         if stop_email_service_flag.is_set():
@@ -39,8 +40,8 @@ def start_email_service():
             break
         subject = 'Teste de envio de email com Python'
         message = f"Olá {enterprise['fantasy_name']}, este é um teste de envio de email com Python"
-        sending_emails_id = log_email_sent(cursor, conn, enterprise, config['sender_email'])
-        if send_email(config, enterprise['email'], subject, message, sending_emails_id):
+        sending_id = log_email_sent(cursor, conn, enterprise, runners)
+        if send_email(config, enterprise['email'], subject, message, sending_id, runners):
             logging.info('Email enviado com sucesso para: %s', enterprise['email'])
 
     cursor.close()
@@ -66,8 +67,8 @@ def get_enterprises(cursor, range_days):
             WHERE coontact_valid = true 
             AND lower(situation) = 'ativa'
             AND enterprise_meling_id NOT IN (
-                SELECT enterprise_meling_id FROM marketing."Sending_Emails" se WHERE created_at >= current_date - interval '{range_days} days'
-            )           
+                SELECT enterprise_meling_id FROM marketing."Sending" se WHERE created_at >= current_date - interval '{range_days} days '
+            )       
         """)
         records = cursor.fetchall()
         enterprises = [{'enterprise_meling_id': record[0], 'fantasy_name': record[1], 'email': record[2]} for record in records]
@@ -77,17 +78,18 @@ def get_enterprises(cursor, range_days):
         logging.error('Erro ao obter empresas: %s', e)
         return []
 
-def log_email_sent(cursor, conn, enterprise, sender_email):
+def log_email_sent(cursor, conn, enterprise, runners):
     """
     Registra o envio de email no banco de dados e retorna o ID do envio.
     """
     try:
         unique_id = uuid.uuid4()
         unique_id_str = str(unique_id)
+        runner_id = runners[0]['runner_id']
         cursor.execute(f"""
-            INSERT INTO marketing."Sending_Emails" (sending_emails_id, enterprise_meling_id, sender_email, sended_email)
-            VALUES ('{unique_id_str}', '{enterprise['enterprise_meling_id']}', '{sender_email}', true)
-            RETURNING sending_emails_id
+            INSERT INTO marketing."Sending" (sending_id, enterprise_meling_id, runner_id, sended_email)
+            VALUES ('{unique_id_str}', '{enterprise['enterprise_meling_id']}', '{runner_id}', true)
+            RETURNING sending_id
         """)
         conn.commit()
         logging.info('Email registrado no banco de dados para: %s', enterprise['email'])
@@ -95,6 +97,23 @@ def log_email_sent(cursor, conn, enterprise, sender_email):
     except Exception as e:
         logging.error('Erro ao registrar email no banco de dados: %s', e)
         return None
+
+def get_runners(cursor):
+    """
+    Obtém a lista de emails que serão usados para o envio do banco de dados.
+    """
+    try:
+        cursor.execute(f"""
+            SELECT runner_id, runner as email FROM marketing.runner r 
+            WHERE r.platform = 'gmail'
+        """)
+        records = cursor.fetchall()
+        runners = [{'runner_id': record[0], 'email': record[1]} for record in records]
+        logging.info('Runners: %s', runners)
+        return runners
+    except Exception as e:
+        logging.error('Erro ao obter runners: %s', e)
+        return []
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)

@@ -1,12 +1,15 @@
+from datetime import datetime
+import uuid
 from flask import Blueprint, send_file, current_app
+import pytz
 from db.db_connection import connect_db
 import logging
 import io
 
 tracking_bp = Blueprint('tracking', __name__)
 
-@tracking_bp.route('/track_open/<sending_emails_id>', methods=['GET'])
-def track_open(sending_emails_id):
+@tracking_bp.route('/track_open/<sending_id>', methods=['GET'])
+def track_open(sending_id):
     """
     Endpoint para rastrear a abertura de emails.
     """
@@ -14,13 +17,18 @@ def track_open(sending_emails_id):
     conn, cursor = connect_db(config)
     if conn and cursor:
         try:
+            tz = pytz.timezone('America/Sao_Paulo')
+            now_brasilia = datetime.now(tz)
+            now_brasilia_naive = now_brasilia.replace(tzinfo=None)
+            
+            logging.info('hora de abertura do email: %s', now_brasilia)
+            unique_id = str(uuid.uuid4())
             cursor.execute(f"""
-                UPDATE marketing."Sending_Emails"
-                SET opened_email = TRUE, opened_email_date = NOW()
-                WHERE sending_emails_id = '{sending_emails_id}'
-            """)
+                INSERT INTO marketing.email_return_information (email_return_information_id,sending_id,email_opned,email_opned_date)
+                VALUES (%s, %s, %s, %s)               
+            """, (unique_id, sending_id, True, now_brasilia_naive))
             conn.commit()
-            logging.info('Abertura de email registrada com sucesso para o ID: %s', sending_emails_id)
+            logging.info('Abertura de email registrada com sucesso para o ID: %s', sending_id)
         except Exception as e:
             logging.error('Erro ao registrar abertura de email: %s', e)
         finally:
