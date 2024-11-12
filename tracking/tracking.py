@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid
-from flask import Blueprint, send_file, current_app
+from flask import Blueprint, jsonify, request, send_file, current_app
 import pytz
 from db.db_connection import connect_db
 import logging
@@ -13,20 +13,38 @@ def track_open(sending_id):
     """
     Endpoint para rastrear a abertura de emails.
     """
+    token = request.args.get('token')
+    if not token:
+        logging.error('Token não fornecido')
+        return jsonify({'error': 'Token nao fornecido'}), 400
+    
     config = current_app.config
     conn, cursor = connect_db(config)
     if conn and cursor:
         try:
+            cursor.execute("""
+                SELECT s.sended_token FROM marketing."Sending" s 
+                WHERE s.sending_id = %s AND s.sended_token = %s AND s.sended_token_used = FALSE            
+            """, (sending_id, token))
+            result = cursor.fetchone()
+            if not result:
+                logging.error('Token inválido')
+                return jsonify({'error': 'Token invalido'}), 400
+            
             tz = pytz.timezone('America/Sao_Paulo')
             now_brasilia = datetime.now(tz)
             now_brasilia_naive = now_brasilia.replace(tzinfo=None)
             
             logging.info('hora de abertura do email: %s', now_brasilia)
             unique_id = str(uuid.uuid4())
-            cursor.execute(f"""
-                INSERT INTO marketing.email_return_information (email_return_information_id,sending_id,email_opned,email_opned_date)
+            cursor.execute("""
+                INSERT INTO marketing.email_return_information (email_return_information_id, sending_id, email_opned, email_opned_date)
                 VALUES (%s, %s, %s, %s)               
             """, (unique_id, sending_id, True, now_brasilia_naive))
+            
+            cursor.execute("""
+                UPDATE marketing."Sending" SET sended_token_used = TRUE WHERE sending_id = %s
+            """, (sending_id,))
             conn.commit()
             logging.info('Abertura de email registrada com sucesso para o ID: %s', sending_id)
         except Exception as e:

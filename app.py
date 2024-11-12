@@ -40,8 +40,11 @@ def start_email_service():
             break
         subject = 'Teste de envio de email com Python'
         message = f"Olá {enterprise['fantasy_name']}, este é um teste de envio de email com Python"
-        sending_id = log_email_sent(cursor, conn, enterprise, runners)
-        if send_email(config, enterprise['email'], subject, message, sending_id, runners):
+        
+        token = str(uuid.uuid4())
+        
+        sending_id = log_email_sent(cursor, conn, enterprise, runners, token)
+        if send_email(config, enterprise['email'], subject, message, sending_id, runners, token):
             logging.info('Email enviado com sucesso para: %s', enterprise['email'])
 
     cursor.close()
@@ -78,7 +81,7 @@ def get_enterprises(cursor, range_days):
         logging.error('Erro ao obter empresas: %s', e)
         return []
 
-def log_email_sent(cursor, conn, enterprise, runners):
+def log_email_sent(cursor, conn, enterprise, runners, token):
     """
     Registra o envio de email no banco de dados e retorna o ID do envio.
     """
@@ -87,8 +90,8 @@ def log_email_sent(cursor, conn, enterprise, runners):
         unique_id_str = str(unique_id)
         runner_id = runners[0]['runner_id']
         cursor.execute(f"""
-            INSERT INTO marketing."Sending" (sending_id, enterprise_meling_id, runner_id, sended_email)
-            VALUES ('{unique_id_str}', '{enterprise['enterprise_meling_id']}', '{runner_id}', true)
+            INSERT INTO marketing."Sending" (sending_id, enterprise_meling_id, runner_id, sended_email, sended_token)
+            VALUES ('{unique_id_str}', '{enterprise['enterprise_meling_id']}', '{runner_id}', true, '{token}')
             RETURNING sending_id
         """)
         conn.commit()
