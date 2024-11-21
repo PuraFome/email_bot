@@ -1,0 +1,49 @@
+name: Deploy to google Cloud Run
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy_to_gcloud:
+    runs-on: ubuntu-latest
+    enviroments: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch origin 'refs/heads/*:refs/remotes/origin/*'
+
+      - name: Ensure dev branch exists
+        runs: |
+          if git show-ref --verify --quiet refs/heads/dev; then
+            echo "Branch dev exists"
+          else
+            echo "Branch dev doesn't not exist locally. Creating it"
+            git checkout -b dev
+            git push origin dev
+          fi
+
+      - name: Checkout main branch
+        run: git checkout main
+
+      - name: Pull latest changes from main
+        run: git pull origin main
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10.6'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          credentials: ${{ secrets.GCP_SA_KEY }}
+        

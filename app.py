@@ -70,7 +70,7 @@ def get_enterprises(cursor, range_days):
             WHERE coontact_valid = true 
             AND lower(situation) = 'ativa'
             AND enterprise_meling_id NOT IN (
-                SELECT enterprise_meling_id FROM marketing."Sending" se WHERE created_at >= current_date - interval '{range_days} days '
+                SELECT enterprise_meling_id FROM marketing."Sending" se WHERE se.sended_email_date >= current_date - interval '{range_days} days '
             )       
         """)
         records = cursor.fetchall()
