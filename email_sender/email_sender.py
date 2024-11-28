@@ -5,7 +5,7 @@ import logging
 
 from db.db_connection import connect_db
 
-def send_email(config, recipient_email, subject, message, sending_id, runners, token):
+def send_email(config, recipient_email, subject, message, sending_id, runners, token, html_template=None):
     """
     Envia um email para o destinatário especificado.
     """
@@ -21,7 +21,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         msg['Subject'] = subject
 
         # Formatar o corpo do email como HTML
-        html_message = f"""
+        html_message = html_template if html_template else f"""
         <html>
         <head>
             <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@600&display=swap" rel="stylesheet">
@@ -118,5 +118,5 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
     except Exception as e:
         logging.error('Erro ao enviar email: %s', e)
         return False
-    
+
 
