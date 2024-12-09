@@ -10,6 +10,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
     Envia um email para o destinatário especificado.
     """
     try:
+        track_api = 'https://email-bot-q2qk.onrender.com'
         server = smtplib.SMTP(config['server_smtp'], config['porta_smtp'])
         server.starttls()
         email = runners[0]['email']
@@ -103,16 +104,20 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
                     </td>
                 </tr>
             </table>
-            <img src="https://malling-bot-2-935702226305.southamerica-east1.run.app/track_open/{sending_id}?token={token}" alt="" width="1" height="1" />
+            <img src="{track_api}/track_open/{sending_id}?token={token}" alt="" width="1" height="1" />
         </body>
         </html>
         """
+        
+        #logging.info('email enviado: %s', html_message)
+        logging.info('track_api: %s', track_api)
+        logging.info('sending_id: %s', sending_id)
+        logging.info('token: %s', token)
         
         # Anexar a mensagem HTML ao email
         msg.attach(MIMEText(html_message, 'html'))
 
         server.sendmail(email, recipient_email, msg.as_string())
-        logging.info('Email enviado com sucesso para: %s', recipient_email)
         server.quit()
         return True
     except Exception as e:
