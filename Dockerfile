@@ -11,6 +11,9 @@ RUN pip install -r requirements.txt
 # Copia o restante do código para o contêiner
 COPY . .
 
+# Criar o diretório para o certificado SSL
+RUN mkdir -p /root/.postgresql
+
 # Copia o certificado SSL para o contêiner
 RUN echo "$DB_SSL_CERT" > /root/.postgresql/root.crt
 
