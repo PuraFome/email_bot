@@ -20,6 +20,8 @@ RUN echo "$DB_SSL_CERT" > /root/.postgresql/root.crt
 # Verificar o conteúdo do diretório e do arquivo de certificado
 RUN ls -l /root/.postgresql && cat /root/.postgresql/root.crt
 
+RUN cat /root/.postgresql/root.crt
+
 # Define a variável de ambiente para o Flask
 ENV FLASK_APP=app.py
 
