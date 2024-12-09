@@ -17,8 +17,8 @@ RUN mkdir -p /root/.postgresql
 # Copia o certificado SSL para o contêiner
 RUN echo "${DB_SSL_CERT}"
 RUN ls -l /etc/secrets/
-RUN cat /etc/secrets/root.crt
-COPY /etc/secrets/root.crt  /root/.postgresql/root.crt
+RUN cat /etc/secrets/teste.txt
+RUN echo "$DB_SSL_CERT" > /root/.postgresql/root.crt
 
 # Verificar o conteúdo do diretório e do arquivo de certificado
 RUN ls -l /root/.postgresql
