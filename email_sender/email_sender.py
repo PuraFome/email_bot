@@ -97,7 +97,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
                             <div class="main-text">Sua Landing Page Precisa Ser</div>
                             <div class="main-text highlight">Tão Única Quanto o Seu Negócio</div>
                             <div class="sub-text">Landing Pages Exclusivas para Aumentar a Visibilidade e Confiança do Seu Negócio Online</div>
-                            <img src="https://storage.googleapis.com/pure-digital-us/runners/LPS.png" alt="Exemplos de Landing Page" class="example-image" />
+                            <img src="images\lps.png" alt="Exemplos de Landing Page" class="example-image" />
                             <div class="info-text">Quer saber o que é uma Landing Page e como ela pode transformar seu negócio?</div>
                             <a href="https://wa.me/44984574871" class="button">
                                 <img src="https://storage.googleapis.com/pure-digital-us/runners/BOTAO.png" alt="Botão WhatsApp" />
@@ -112,6 +112,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         </html>
         """
         
+        logging.info('Enviando: %s', html_message)
        
         # Anexar a mensagem HTML ao email
         msg.attach(MIMEText(html_message, 'html'))
