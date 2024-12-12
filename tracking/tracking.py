@@ -38,7 +38,7 @@ def track_open(sending_id):
             logging.info('hora de abertura do email: %s', now_brasilia)
             unique_id = str(uuid.uuid4())
             cursor.execute("""
-                INSERT INTO marketing."Email_return_information" (email_return_information_id, sending_id, email_opned, email_opned_date)
+                INSERT INTO marketing."Email_Return_Information" (email_return_information_id, sending_id, email_opned, email_opned_date)
                 VALUES (%s, %s, %s, %s)               
             """, (unique_id, sending_id, True, now_brasilia_naive))
             
