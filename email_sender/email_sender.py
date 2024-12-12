@@ -22,7 +22,10 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         msg['Subject'] = subject
 
         # Formatar o corpo do email como HTML
-        html_message = html_template if html_template else f"""
+        if html_template:
+            html_message = html_template.replace("{track_api}", track_api).replace("{sending_id}", sending_id).replace("{token}", token)
+        else:
+            html_message = f"""
         <html>
         <head>
             <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@600&display=swap" rel="stylesheet">
@@ -109,11 +112,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         </html>
         """
         
-        #logging.info('email enviado: %s', html_message)
-        logging.info('track_api: %s', track_api)
-        logging.info('sending_id: %s', sending_id)
-        logging.info('token: %s', token)
-        
+       
         # Anexar a mensagem HTML ao email
         msg.attach(MIMEText(html_message, 'html'))
 

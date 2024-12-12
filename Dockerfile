@@ -10,18 +10,6 @@ RUN pip install -r requirements.txt
 
 # Copia o restante do código para o contêiner
 COPY . .
-ARG DB_SSL_CERT
-
-# Criar o diretório para o certificado SSL
-RUN mkdir -p /root/.postgresql
-
-# Copia o certificado SSL para o contêiner
-RUN echo "$DB_SSL_CERT" > /root/.postgresql/root.crt
-
-# Verificar o conteúdo do diretório e do arquivo de certificado
-RUN ls -l /root/.postgresql
-
-RUN cat /root/.postgresql/root.crt
 
 # Define a variável de ambiente para o Flask
 ENV FLASK_APP=app.py
