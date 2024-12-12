@@ -12,4 +12,5 @@ def load_config():
         'range_days': os.getenv('RANGE_DAYS'),
         'database_url': os.getenv('DATABASE_URL')
     }
+    logging.info('database_url: %s', config['database_url'])
     return config

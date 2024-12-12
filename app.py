@@ -142,7 +142,7 @@ def get_runners(cursor):
                 runner_id, 
                 runner as email 
             FROM 
-                marketing.runner r 
+                marketing."Runner" r 
             WHERE 
                 r.platform = 'gmail'
         """)
@@ -164,7 +164,7 @@ def get_html_template(cursor, template_id):
             SELECT 
                 html 
             FROM 
-                marketing.models 
+                marketing."Models" 
             WHERE 
                 model_id = %s
         """, (str(template_id),))
