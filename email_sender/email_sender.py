@@ -23,7 +23,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
 
         # Formatar o corpo do email como HTML
         if html_template:
-            html_message = html_template.replace("{track_api}", track_api).replace("{sending_id}", sending_id).replace("{token}", token)
+            html_message = html_template.replace("{track_api}", track_api).replace("{sending_id}", sending_id)
         else:
             html_message = f"""
         <html>

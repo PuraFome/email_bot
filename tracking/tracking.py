@@ -22,15 +22,7 @@ def track_open(sending_id):
     conn, cursor = connect_db(config)
     if conn and cursor:
         try:
-            cursor.execute("""
-                SELECT s.sended_token FROM marketing."Sending" s 
-                WHERE s.sending_id = %s AND s.sended_token = %s AND s.sended_token_used = FALSE            
-            """, (sending_id, token))
-            result = cursor.fetchone()
-            if not result:
-                logging.error('Token inválido')
-                return jsonify({'error': 'Token invalido'}), 400
-            
+
             tz = pytz.timezone('America/Sao_Paulo')
             now_brasilia = datetime.now(tz)
             now_brasilia_naive = now_brasilia.replace(tzinfo=None)
@@ -42,9 +34,6 @@ def track_open(sending_id):
                 VALUES (%s, %s, %s, %s)               
             """, (unique_id, sending_id, True, now_brasilia_naive))
             
-            cursor.execute("""
-                UPDATE marketing."Sending" SET sended_token_used = TRUE WHERE sending_id = %s
-            """, (sending_id,))
             conn.commit()
             logging.info('Abertura de email registrada com sucesso para o ID: %s', sending_id)
         except Exception as e:
