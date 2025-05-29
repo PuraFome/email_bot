@@ -13,10 +13,6 @@ def track_open(sending_id):
     """
     Endpoint para rastrear a abertura de emails.
     """
-    token = request.args.get('token')
-    if not token:
-        logging.error('Token não fornecido')
-        return jsonify({'error': 'Token nao fornecido'}), 400
     
     config = current_app.config
     conn, cursor = connect_db(config)
