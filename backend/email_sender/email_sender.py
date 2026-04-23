@@ -13,7 +13,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         track_api = 'https://email-bot-q2qk.onrender.com'
         server = smtplib.SMTP(config['server_smtp'], config['porta_smtp'])
         server.starttls()
-        email = runners[0]['email']
+        email = config['sender_email']
         server.login(email, config['password'])
 
         msg = MIMEMultipart('alternative')
@@ -119,9 +119,9 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
 
         server.sendmail(email, recipient_email, msg.as_string())
         server.quit()
-        return True
+        return True, None
     except Exception as e:
         logging.error('Erro ao enviar email: %s', e)
-        return False
+        return False, str(e)
 
 

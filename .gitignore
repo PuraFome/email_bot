@@ -5,3 +5,13 @@ venv
 .vscode
 __pycache__
 *.pyc
+
+# Docker and local data
+postgres_data/
+
+# Node and frontend
+frontend/node_modules/
+/dist
+
+# Python
+backend/__pycache__/

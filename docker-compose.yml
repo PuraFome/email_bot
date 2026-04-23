@@ -1,17 +1,73 @@
 version: '3.8'
 
 services:
-  web:
-    build: .
-    container_name: flask_app
+  postgres:
+    image: postgres:15-alpine
+    container_name: email_bot_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-email_bot}
     ports:
-      - "8080:8080"
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+      - ./postgres_init:/docker-entrypoint-initdb.d
+      
+    networks:
+      - email_bot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: email_bot_backend
+    ports:
+      - "5000:5000"
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-email_bot}
+      - SERVER_SMTP=${SERVER_SMTP}
+      - PORTA_SMTP=${PORTA_SMTP}
+      - SENDER_EMAIL=${SENDER_EMAIL}
+      - PASSWORD=${PASSWORD}
+      - RANGE_DAYS=${RANGE_DAYS}
+      - DB_HOST=postgres
+      - DB_PORT=5432
     volumes:
-      - .:/app
-      - ./certs:/root/.postgresql
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - email_bot_network
     env_file:
       - .env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: email_bot_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    depends_on:
+      - backend
+    networks:
+      - email_bot_network
+
+networks:
+  email_bot_network:
+    driver: bridge
