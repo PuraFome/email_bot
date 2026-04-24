@@ -1,13 +1,13 @@
-from flask import Flask, jsonify, request
+﻿from flask import Flask
 from flask_cors import CORS
 from config.config import load_config
-from db.db_connection import connect_db
-from email_sender.email_sender import send_email
 from logs.logger import setup_logging
 from tracking.tracking import tracking_bp
-import uuid
-import logging
-import threading
+from apis.service.routes import service_bp
+from apis.enterprise_meling.routes import enterprise_meling_bp
+from apis.models.routes import models_bp
+from apis.sendings.routes import sendings_bp
+from apis.email_returns.routes import email_returns_bp
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para o frontend
@@ -15,194 +15,13 @@ setup_logging()
 config = load_config()
 app.config.update(config)
 
-# Registrar o blueprint de rastreamento
+# Registrar blueprints
 app.register_blueprint(tracking_bp)
-
-# Sinalizador global para controlar o loop
-stop_email_service_flag = threading.Event()
-
-@app.route('/start_email_service', methods=['POST'])
-def start_email_service():
-    """
-    Inicia o serviço de envio de emails.
-    """
-    global stop_email_service_flag
-    stop_email_service_flag.clear()  # Resetar o sinalizador ao iniciar o serviço
-
-    conn, cursor = connect_db(config)
-    if not conn or not cursor:
-        return jsonify({'error': 'Erro ao conectar ao banco de dados'}), 500
-
-    data = request.get_json(silent=True) or {}
-    html_template_id = data.get('html_template_id')
-    html_template = get_html_template(cursor, html_template_id) if html_template_id else None
-
-    enterprises = get_enterprises(cursor, config['range_days'])
-    if enterprises is None:
-        cursor.close()
-        conn.close()
-        return jsonify({'error': 'Erro ao buscar empresas no banco de dados'}), 500
-
-    runners = get_runners(cursor)
-    if not runners:
-        cursor.close()
-        conn.close()
-        return jsonify({'error': 'Nenhum runner com platform = gmail encontrado na tabela marketing.runner'}), 500
-
-    for enterprise in enterprises:
-        logging.info('Stop email service flag is set: %s', stop_email_service_flag.is_set())
-        if stop_email_service_flag.is_set():
-            logging.info('Serviço de envio de emails interrompido.')
-            break
-
-        subject = 'Teste de envio de email com Python'
-        message = f"Olá {enterprise['fantasy_name']}, este é um teste de envio de email com Python"
-        token = str(uuid.uuid4())
-
-        sending_id = log_email_sent(cursor, conn, enterprise, runners, token, html_template_id)
-        if not sending_id:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': f'Erro ao registrar email no banco de dados para {enterprise["email"]}'}), 500
-
-        success, error_message = send_email(config, enterprise['email'], subject, message, sending_id, runners, token, html_template)
-        if not success:
-            logging.error('Falha no envio de email para %s: %s', enterprise['email'], error_message)
-            cursor.close()
-            conn.close()
-            return jsonify({
-                'error': 'Erro ao enviar email',
-                'details': error_message,
-                'email': enterprise['email']
-            }), 500
-        logging.info('Email enviado com sucesso para: %s', enterprise['email'])
-
-    cursor.close()
-    conn.close()
-    return jsonify({'message': 'Serviço de envio de emails iniciado'}), 200
-
-@app.route('/stop_email_service', methods=['POST'])
-def stop_email_service():
-    """
-    Para o serviço de envio de emails.
-    """
-    global stop_email_service_flag
-    stop_email_service_flag.set()  # Sinalizar para parar o serviço
-    return jsonify({'message': 'Serviço de envio de emails parado'}), 200
-
-def get_enterprises(cursor, range_days):
-    """
-    Obtém a lista de empresas do banco de dados.
-    """
-    try:
-        cursor.execute(f"""
-            SELECT 
-                enterprise_meling_id, 
-                fantasy_name, 
-                email 
-            FROM 
-                marketing."Enterprise_Meling" 
-            WHERE 
-                coontact_valid = true 
-                AND lower(situation) = 'ativa'
-                AND enterprise_meling_id NOT IN (
-                    SELECT 
-                        enterprise_meling_id 
-                    FROM 
-                        marketing."Sending" se 
-                    WHERE 
-                        se.sended_email_date >= current_date - interval '{range_days} days'
-                )       
-        """)
-        records = cursor.fetchall()
-        enterprises = [{'enterprise_meling_id': record[0], 'fantasy_name': record[1], 'email': record[2]} for record in records]
-        logging.info('Empresas: %s', enterprises)
-        return enterprises
-    except Exception as e:
-        logging.error('Erro ao obter empresas: %s', e)
-        cursor.connection.rollback()
-        return None
-
-def log_email_sent(cursor, conn, enterprise, runners, token, model_id):
-    """
-    Registra o envio de email no banco de dados e retorna o ID do envio.
-    """
-    try:
-        unique_id = uuid.uuid4()
-        unique_id_str = str(unique_id)
-        runner_id = runners[0]['runner_id']
-        cursor.execute(
-            """
-            INSERT INTO marketing."Sending" (
-                sending_id, 
-                enterprise_meling_id, 
-                runner_id, 
-                sended_email, 
-                sended_token, 
-                model_id
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING sending_id
-            """,
-            (
-                unique_id_str,
-                enterprise['enterprise_meling_id'],
-                runner_id,
-                True,
-                token,
-                model_id
-            )
-        )
-        sending_id = cursor.fetchone()[0]
-        conn.commit()
-        logging.info('Email registrado no banco de dados para: %s', enterprise['email'])
-        return sending_id
-    except Exception as e:
-        logging.error('Erro ao registrar email no banco de dados: %s', e)
-        conn.rollback()
-        return None
-
-def get_runners(cursor):
-    """
-    Obtém a lista de emails que serão usados para o envio do banco de dados.
-    """
-    try:
-        cursor.execute("""
-            SELECT 
-                runner_id, 
-                runner as email 
-            FROM 
-                marketing.runner r 
-            WHERE 
-                r.platform = 'gmail'
-        """)
-        records = cursor.fetchall()
-        runners = [{'runner_id': record[0], 'email': record[1]} for record in records]
-        logging.info('Runners: %s', runners)
-        return runners
-    except Exception as e:
-        logging.error('Erro ao obter runners: %s', e)
-        cursor.connection.rollback()
-        return []
-
-def get_html_template(cursor, template_id):
-    """
-    Obtém o modelo HTML do banco de dados.
-    """
-    try:
-        cursor.execute("""
-            SELECT 
-                html 
-            FROM 
-                marketing.models 
-            WHERE 
-                model_id = %s
-        """, (str(template_id),))
-        record = cursor.fetchone()
-        return record[0] if record else None
-    except Exception as e:
-        logging.error('Erro ao obter modelo HTML: %s', e)
-        cursor.connection.rollback()
-        return None
+app.register_blueprint(service_bp)
+app.register_blueprint(enterprise_meling_bp)
+app.register_blueprint(models_bp)
+app.register_blueprint(sendings_bp)
+app.register_blueprint(email_returns_bp)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
