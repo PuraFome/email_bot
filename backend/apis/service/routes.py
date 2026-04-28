@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 import threading
 import uuid
 import logging
+import os
 
 from db.db_connection import connect_db
 from email_sender.email_sender import send_email
@@ -50,7 +51,10 @@ def start_email_service():
             close_connection(conn, cursor)
             return jsonify({'error': f'Erro ao registrar email no banco de dados para {enterprise["email"]}'}), 500
 
-        success, error_message = send_email(config, enterprise['email'], subject, message, sending_id, runners, token, html_template)
+        # Caminho da imagem para anexar ao email
+        image_path = os.path.join(os.path.dirname(__file__), '../../images/bi_email.jpg')
+        
+        success, error_message = send_email(config, enterprise['email'], subject, message, sending_id, runners, token, html_template, image_path)
         if not success:
             logging.error('Falha no envio de email para %s: %s', enterprise['email'], error_message)
             close_connection(conn, cursor)

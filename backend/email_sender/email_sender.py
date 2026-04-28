@@ -1,11 +1,13 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 import logging
+import os
 
 from db.db_connection import connect_db
 
-def send_email(config, recipient_email, subject, message, sending_id, runners, token, html_template=None):
+def send_email(config, recipient_email, subject, message, sending_id, runners, token, html_template=None, image_path=None):
     """
     Envia um email para o destinatário especificado.
     """
@@ -16,7 +18,7 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
         email = config['sender_email']
         server.login(email, config['password'])
 
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart('related')
         msg['From'] = config['sender_email']
         msg['To'] = recipient_email
         msg['Subject'] = subject
@@ -116,7 +118,19 @@ def send_email(config, recipient_email, subject, message, sending_id, runners, t
        
         # Anexar a mensagem HTML ao email
         msg.attach(MIMEText(html_message, 'html'))
-
+        
+        # Anexar imagem se o caminho foi fornecido
+        if image_path and os.path.exists(image_path):
+            try:
+                with open(image_path, 'rb') as img_file:
+                    img = MIMEImage(img_file.read(), name='bi_email.jpg')
+                    img.add_header('Content-ID', '<bi_email>')
+                    img.add_header('Content-Disposition', 'inline', filename='bi_email.jpg')
+                    msg.attach(img)
+                logging.info('Imagem anexada ao email: %s', image_path)
+            except Exception as e:
+                logging.error('Erro ao anexar imagem: %s', e)
+        
         server.sendmail(email, recipient_email, msg.as_string())
         server.quit()
         return True, None
